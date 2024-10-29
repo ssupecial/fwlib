@@ -189,6 +189,9 @@ static PyObject* Context_exit(Context* self, PyObject* exc_type, PyObject* exc_v
 
 static PyMethodDef Context_methods[] = {
     {"read_id", (PyCFunction) Context_read_id, METH_NOARGS, "Reads the CNC ID."},
+    {"acts", (PyCFunction) Context_acts, METH_NOARGS, "Reads the actual spindle speed."},
+    {"acts2", (PyCFunction) Context_acts2, METH_VARARGS, "Reads actual speeds for multiple spindles."},
+    {"actf", (PyCFunction) Context_actf, METH_NOARGS, "Reads the actual feed rate."},
     {"__enter__", (PyCFunction) Context_enter, METH_NOARGS, "Enter the context."},
     {"__exit__", (PyCFunction) Context_exit, METH_VARARGS, "Exit the context."},
     {NULL}  /* Sentinel */

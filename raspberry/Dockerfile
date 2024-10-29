@@ -15,7 +15,7 @@ RUN ln -s /usr/local/lib/libfwlib32-linux-armv7.so.1.0.5 /usr/local/lib/libfwlib
     ldconfig
 
 # Install Python build dependencies
-RUN python -m pip install setuptools wheel
+RUN python -m pip install setuptools wheel click
 
 WORKDIR /usr/src/fwlib
 COPY ./raspberry/fwlib.c ./raspberry/setup.py ./fwlib32.h ./
