@@ -71,6 +71,7 @@ static void Context_dealloc(Context* self) {
     Py_TYPE(self)->tp_free((PyObject*) self);
 }
 
+// CNC 기계 ID 읽기 [cnc_rdcncid]
 static PyObject* Context_read_id(Context* self, PyObject* Py_UNUSED(ignored)) {
     uint32_t cnc_ids[4] = {0};
     char cnc_id[40] = "";
@@ -86,6 +87,86 @@ static PyObject* Context_read_id(Context* self, PyObject* Py_UNUSED(ignored)) {
              cnc_ids[0], cnc_ids[1], cnc_ids[2], cnc_ids[3]);
 
     return PyUnicode_FromString(cnc_id);
+}
+
+/*
+CNC 단일 Spindle 속도 읽기 [cnc_acts] 
+https://www.inventcom.net/fanuc-focas-library/position/cnc_acts
+*/
+static PyObject* Context_acts(Context* self, PyObject* Py_UNUSED(ignored)) {
+    ODBACT actualspeed;
+    int ret;
+
+    ret = cnc_acts(self->libh, &actualspeed);
+    if (ret != EW_OK) {
+        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC acts: %d", ret);
+        return NULL;
+    }
+
+    return PyLong_FromLong(actualspeed.data);
+}
+
+/*
+CNC 여러 Spindle 속도 읽기 [cnc_acts2]
+https://www.inventcom.net/fanuc-focas-library/position/cnc_acts2
+*/
+static PyObject* Context_acts2(Context* self, PyObject* args) {
+    short sp_no;
+    // 인자로 Spindle 번호를 받음 (-1: 모든 Spindle)
+    if (!PyArg_ParseTuple(args, "h", &sp_no)) {
+        return NULL;
+    }
+
+
+    ODBACT2 actualspeed;
+    int ret;
+
+    ret = cnc_acts2(self->libh, sp_no, &actualspeed);
+    if (ret != EW_OK) {
+        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC acts2: %d", ret);
+        return NULL;
+    }
+
+    PyObject* dict = PyDict_New();
+    if (!dict) {
+        return NULL;
+    }
+
+    PyDict_SetItemString(dict, "datano", PyLong_FromLong(actualspeed.datano));
+
+    // 스핀들 데이터 추가
+    PyObject* data_list = PyList_New(0);
+    if (!data_list) {
+        Py_DECREF(dict);
+        return NULL;
+    }
+    
+    long* data = actualspeed.data;
+    for (int i = 0; i < actualspeed.datano; i++) {
+        PyList_Append(data_list, PyLong_FromLong(data[i]));
+    }
+
+    PyDict_SetItemString(dict, "data", data_list);
+    Py_DECREF(data_list);
+
+    return dict;
+}
+
+/*
+CNC Axis Feedrate 읽기 [cnc_actf]
+https://www.inventcom.net/fanuc-focas-library/position/cnc_actf
+*/
+static PyObject* Context_actf(Context* self, PyObject* Py_UNUSED(ignored)) {
+    ODBACT actualfeed;
+    int ret;
+
+    ret = cnc_actf(self->libh, &actualfeed);
+    if (ret != EW_OK) {
+        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC actf: %d", ret);
+        return NULL;
+    }
+
+    return PyLong_FromLong(actualfeed.data);
 }
 
 static PyObject* Context_enter(PyObject* self) {
