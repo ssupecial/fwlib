@@ -4,3 +4,4 @@ libconfig.dll
 libconfig.lib
 **/*.obj
 **/*.exe
+.vscode/
