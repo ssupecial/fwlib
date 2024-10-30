@@ -1,9 +1,4 @@
-import logging
 from fwlib import Context
-
-logging.basicConfig(
-    level=logging.INFO, format="[%(asctime)s] %(levelname)s - %(message)s"
-)
 
 
 class CNCDevice:
