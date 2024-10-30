@@ -13,3 +13,10 @@ Link or rename appropriate `libfwlib\*.so` (based on platform) to `libfwlib32.so
 On linux x86\_64 for example: `ln -s libfwlib32-linux-x64.so.1.0.5 libfwlib32.so` 
 
 More instructions in each example folder
+
+# `raspberry/`
+Build for Raspberry Pi 32-bit OS (bookworm)
+Use `libfwlib32-linux-armv7.so.1.0.5`
+
+<!-- Code Block -->
+

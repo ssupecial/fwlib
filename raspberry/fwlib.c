@@ -43,14 +43,14 @@ static int Context_init(Context* self, PyObject* args, PyObject* kwds) {
 
 #ifndef _WIN32
     if (cnc_startup() != EW_OK) {
-        PyErr_SetString(PyExc_RuntimeError, "Failed to start FANUC process.");
+        PyErr_SetString(PyExc_RuntimeError, "Cannot start FANUC process.");
         return -1;
     }
 #endif
 
     ret = cnc_allclibhndl3(host, port, timeout, &self->libh);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_ConnectionError, "Failed to connect to CNC: %d", ret);
+        PyErr_Format(PyExc_ConnectionError, "FWLIB32:%d", ret);
         return -1;
     }
     self->connected = 1;
@@ -107,7 +107,7 @@ static PyObject* Context_read_id(Context* self, PyObject* Py_UNUSED(ignored)) {
 
     ret = cnc_rdcncid(self->libh, (unsigned long*) cnc_ids);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC ID: %d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
         return NULL;
     }
 
@@ -128,7 +128,7 @@ static PyObject* Context_acts(Context* self, PyObject* Py_UNUSED(ignored)) {
 
     ret = cnc_acts(self->libh, &actualspeed);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC acts: %d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
         return NULL;
     }
 
@@ -159,7 +159,7 @@ static PyObject* Context_acts2(Context* self, PyObject* args) {
 
     ret = cnc_acts2(self->libh, sp_no, &actualspeed);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC acts2: %d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
         return NULL;
     }
 
@@ -199,7 +199,7 @@ static PyObject* Context_actf(Context* self, PyObject* Py_UNUSED(ignored)) {
 
     ret = cnc_actf(self->libh, &actualfeed);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC actf: %d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
         return NULL;
     }
 
@@ -242,7 +242,7 @@ static PyObject* Context_rdspeed(Context* self, PyObject* args) {
 
     ret = cnc_rdspeed(self->libh, type, &speed);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC rdspeed: %d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
         return NULL;
     }
 
@@ -381,11 +381,11 @@ static PyObject* Context_rdgcode(Context* self, PyObject* args, PyObject* kwds) 
     short block;
     static char* kwlist[] = {"type", "block", NULL};
     if (!(block >= 0 && block <= 2)) {
-        PyErr_SetString(PyExc_ValueError, "Failed to read CNC gcode: Invalid block number, block number should be 0, 1, 2");
+        PyErr_SetString(PyExc_ValueError, "Invalid block number, block number should be 0, 1, 2");
         return NULL;
     }
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "hh", kwlist, &type, &block)) {
-        PyErr_SetString(PyExc_TypeError, "Failed to read CNC gcode: Invalid arguments");
+        PyErr_SetString(PyExc_TypeError, "Invalid arguments");
         return NULL;
     }
 
@@ -403,7 +403,7 @@ static PyObject* Context_rdgcode(Context* self, PyObject* args, PyObject* kwds) 
     }
 
     if (!gcode) {
-        PyErr_SetString(PyExc_MemoryError, "Failed read CNC gcode: Cannot allocate memory for gcode");
+        PyErr_SetString(PyExc_MemoryError, "Cannot allocate memory for gcode");
         return NULL;
     }
 
@@ -412,7 +412,7 @@ static PyObject* Context_rdgcode(Context* self, PyObject* args, PyObject* kwds) 
     ret = cnc_rdgcode(self->libh, type, block, &num_gcd, gcode);
     if (ret != EW_OK) {
         free(gcode);
-        PyErr_Format(PyExc_RuntimeError, "Failed to read CNC gcode: %d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
         return NULL;
     }
 
