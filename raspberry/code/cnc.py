@@ -13,16 +13,13 @@ class CNCDevice:
         self.context = None
 
     def __enter__(self):
-        try:
-            self.context = Context(host=self.ip, port=self.port)
-            return self
-        except Exception as e:
-            logging.error(f"Failed to connect to CNC Machine: {e}")
-            raise
+        self.context = Context(host=self.ip, port=self.port)
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.context:
             self.context.__exit__(exc_type, exc_val, exc_tb)
+            self.context = None
 
     def read_id(self):
         return self.context.read_id()

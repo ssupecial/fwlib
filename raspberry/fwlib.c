@@ -50,7 +50,7 @@ static int Context_init(Context* self, PyObject* args, PyObject* kwds) {
 
     ret = cnc_allclibhndl3(host, port, timeout, &self->libh);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_ConnectionError, "FWLIB32:%d", ret);
+        PyErr_Format(PyExc_ConnectionError, "FWLIB32[%d]", ret);
         return -1;
     }
     self->connected = 1;
@@ -107,7 +107,7 @@ static PyObject* Context_read_id(Context* self, PyObject* Py_UNUSED(ignored)) {
 
     ret = cnc_rdcncid(self->libh, (unsigned long*) cnc_ids);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32[%d]", ret);
         return NULL;
     }
 
@@ -128,7 +128,7 @@ static PyObject* Context_acts(Context* self, PyObject* Py_UNUSED(ignored)) {
 
     ret = cnc_acts(self->libh, &actualspeed);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32[%d]", ret);
         return NULL;
     }
 
@@ -159,7 +159,7 @@ static PyObject* Context_acts2(Context* self, PyObject* args) {
 
     ret = cnc_acts2(self->libh, sp_no, &actualspeed);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32[%d]", ret);
         return NULL;
     }
 
@@ -199,7 +199,7 @@ static PyObject* Context_actf(Context* self, PyObject* Py_UNUSED(ignored)) {
 
     ret = cnc_actf(self->libh, &actualfeed);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32[%d]", ret);
         return NULL;
     }
 
@@ -242,7 +242,7 @@ static PyObject* Context_rdspeed(Context* self, PyObject* args) {
 
     ret = cnc_rdspeed(self->libh, type, &speed);
     if (ret != EW_OK) {
-        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32[%d]", ret);
         return NULL;
     }
 
@@ -412,7 +412,7 @@ static PyObject* Context_rdgcode(Context* self, PyObject* args, PyObject* kwds) 
     ret = cnc_rdgcode(self->libh, type, block, &num_gcd, gcode);
     if (ret != EW_OK) {
         free(gcode);
-        PyErr_Format(PyExc_RuntimeError, "FWLIB32:%d", ret);
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32[%d]", ret);
         return NULL;
     }
 
