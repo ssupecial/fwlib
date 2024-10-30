@@ -598,12 +598,12 @@ typedef struct odbhnd {
 /* cnc_rdjogdrun:read displayed jog or dryrun feedrate */
 typedef struct speedelm {
     long    data;       /* speed data */
-    short   dec;        /* decimal position */
-    short   unit;       /* data unit */
-    short   disp;       /* display flag */
-    char    name;       /* name of data */
-    char    suff;       /* suffix */
-} SPEEDELM ;
+    short   dec;        /* place of decimal point*/
+    short   unit;       /* unit */
+    short   reserve;    /* */
+    char    name;       /* name */
+    char    suff;       /* subscript of name */
+} SPEEDELM;
 
 typedef struct odbspeed {
     SPEEDELM    actf;   /* actual feed rate */
