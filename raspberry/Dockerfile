@@ -15,7 +15,7 @@ RUN ln -s /usr/local/lib/libfwlib32-linux-armv7.so.1.0.5 /usr/local/lib/libfwlib
     ldconfig
 
 # Install Python build dependencies
-RUN python -m pip install setuptools wheel click
+RUN python -m pip install setuptools wheel
 
 WORKDIR /usr/src/fwlib
 COPY ./raspberry/fwlib.c ./raspberry/setup.py ./fwlib32.h ./
@@ -25,7 +25,9 @@ ENV ARCHFLAGS="-arch arm"
 ENV CFLAGS="-march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard"
 RUN python setup.py bdist_wheel
 
-# Final stage
+##################
+# Final stage    #
+##################
 FROM python:3.9-slim-bookworm
 
 # Copy the ARMv7 version of the library
@@ -39,6 +41,6 @@ WORKDIR /app
 
 COPY --from=builder /usr/src/fwlib/dist/*.whl /app/
 
-RUN pip install /app/*.whl && rm /app/*.whl
+RUN pip install /app/*.whl click && rm /app/*.whl
 
-COPY ./raspberry/main.py ./
+COPY ./raspberry/code/* ./
