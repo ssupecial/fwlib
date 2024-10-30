@@ -1,42 +1,11 @@
 #!/usr/bin/env python3
-from fwlib import Context
 import logging
 import click
+from cnc import CNCDevice
 
 logging.basicConfig(
     level=logging.INFO, format="[%(asctime)s] %(levelname)s - %(message)s"
 )
-
-
-class CNCDevice:
-    def __init__(self, ip="192.168.0.11", port=8193) -> None:
-        self.ip = ip
-        self.port = port
-        self.context = None
-
-    def __enter__(self):
-        try:
-            self.context = Context(host=self.ip, port=self.port)
-            return self
-        except Exception as e:
-            logging.error(f"Failed to connect to CNC Machine: {e}")
-            raise
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.context:
-            self.context.__exit__(exc_type, exc_val, exc_tb)
-
-    def read_id(self):
-        return self.context.read_id()
-
-    def read_speed(self):
-        return self.context.acts()
-
-    def read_speeds(self, spindle_no=-1):
-        return self.context.acts2(spindle_no)
-
-    def read_feed_rate(self):
-        return self.context.actf()
 
 
 @click.command()
@@ -65,6 +34,22 @@ def main(ip, port):
         try:
             feed_rate = cnc.read_feed_rate()
             logging.info(f"CNC Machine Feed Rate: {feed_rate}")
+        except Exception as e:
+            logging.error(f"Error: {e}")
+
+        try:
+            feed_rate_speed = cnc.read_feed_rate_and_speed(
+                -1
+            )  # 피드레이트와 스피들 속도를 읽어옴
+            logging.info(f"CNC Machine Feed Rate and Speed: {feed_rate_speed}")
+        except Exception as e:
+            logging.error(f"Error: {e}")
+
+        try:
+            type = -1  # Read all data of modal G code
+            block = 0  # Previous block
+            gcode = cnc.read_gcode(type, block)
+            logging.info(f"CNC Machine GCode: {gcode}")
         except Exception as e:
             logging.error(f"Error: {e}")
 
