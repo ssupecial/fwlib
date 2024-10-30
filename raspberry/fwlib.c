@@ -409,7 +409,7 @@ static PyObject* Context_rdgcode(Context* self, PyObject* args, PyObject* kwds) 
 
 
     int ret;
-    ret = cnc_rdgcode(self->libh, type, block, &num_gcd, &gcode);
+    ret = cnc_rdgcode(self->libh, type, block, &num_gcd, gcode);
     if (ret != EW_OK) {
         free(gcode);
         PyErr_Format(PyExc_RuntimeError, "Failed to read CNC gcode: %d", ret);
@@ -417,7 +417,7 @@ static PyObject* Context_rdgcode(Context* self, PyObject* args, PyObject* kwds) 
     }
 
     PyObject* return_list = PyList_New(num_gcd);
-    if (!result_list) {
+    if (!return_list) {
         free(gcode);
         return NULL;
     }
