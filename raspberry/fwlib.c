@@ -11,6 +11,12 @@ typedef struct {
     int connected;
 } Context;
 
+struct aux_data {
+    long aux_data;
+    char flag1;
+    char flag2;
+};
+
 #ifndef _WIN32
 int cnc_startup() {
     return cnc_startupprocess(0, "focas.log");
@@ -20,6 +26,10 @@ void cnc_shutdown() {
     cnc_exitprocess();
 }
 #endif
+
+
+static PyObject* parse_gdata(unsigned char g1shot_value);
+static PyObject* create_aux_dict(void* aux_data_ptr);
 
 static PyObject* Context_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     Context* self;
@@ -169,7 +179,10 @@ static PyObject* Context_acts2(Context* self, PyObject* args) {
         return NULL;
     }
 
-    PyDict_SetItemString(dict, "datano", PyLong_FromLong(actualspeed.datano));
+    if (PyDict_SetItemString(dict, "datano", PyLong_FromLong(actualspeed.datano)) < 0) {
+        Py_DECREF(dict);
+        return NULL;
+    }
 
     // 스핀들 데이터 추가
     PyObject* data_list = PyList_New(0);
@@ -183,7 +196,11 @@ static PyObject* Context_acts2(Context* self, PyObject* args) {
         PyList_Append(data_list, PyLong_FromLong(data[i]));
     }
 
-    PyDict_SetItemString(dict, "data", data_list);
+    if (PyDict_SetItemString(dict, "data", data_list) < 0) {
+        Py_DECREF(dict);
+        Py_DECREF(data_list);
+        return NULL;
+    }
     Py_DECREF(data_list);
 
     return dict;
@@ -272,37 +289,55 @@ static PyObject* Context_rdspeed(Context* self, PyObject* args) {
     // Data
     temp_obj = PyLong_FromLong(feed_rate.data);
     if (!temp_obj) goto error;
-    PyDict_SetItemString(feed_rate_dict, "data", temp_obj);
+    if (PyDict_SetItemString(feed_rate_dict, "data", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error;
+    }
     Py_DECREF(temp_obj);
 
     // Dec
     temp_obj = PyLong_FromLong(feed_rate.dec);
     if (!temp_obj) goto error;
-    PyDict_SetItemString(feed_rate_dict, "dec", temp_obj);
+    if (PyDict_SetItemString(feed_rate_dict, "dec", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error;
+    }
     Py_DECREF(temp_obj);
 
     // Unit
     temp_obj = PyLong_FromLong(feed_rate.unit);
     if (!temp_obj) goto error;
-    PyDict_SetItemString(feed_rate_dict, "unit", temp_obj);
+    if (PyDict_SetItemString(feed_rate_dict, "unit", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error;
+    }
     Py_DECREF(temp_obj);
 
     // Reserve
     temp_obj = PyLong_FromLong(feed_rate.reserve);
     if (!temp_obj) goto error;
-    PyDict_SetItemString(feed_rate_dict, "reserve", temp_obj);
+    if (PyDict_SetItemString(feed_rate_dict, "reserve", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error;
+    }
     Py_DECREF(temp_obj);
 
     // Name
     temp_obj = PyUnicode_FromFormat("%c", feed_rate.name);
     if (!temp_obj) goto error;
-    PyDict_SetItemString(feed_rate_dict, "name", temp_obj);
+    if (PyDict_SetItemString(feed_rate_dict, "name", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error;
+    }
     Py_DECREF(temp_obj);
 
     // Suffix
     temp_obj = PyUnicode_FromFormat("%c", feed_rate.suff);
     if (!temp_obj) goto error;
-    PyDict_SetItemString(feed_rate_dict, "suff", temp_obj);
+    if (PyDict_SetItemString(feed_rate_dict, "suff", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error;
+    }
     Py_DECREF(temp_obj);
 
 
@@ -322,42 +357,64 @@ static PyObject* Context_rdspeed(Context* self, PyObject* args) {
     // Data
     temp_obj = PyLong_FromLong(spindle_speed.data);
     if (!temp_obj) goto error_with_spindle;
-    PyDict_SetItemString(spindle_speed_dict, "data", temp_obj);
+    if (PyDict_SetItemString(spindle_speed_dict, "data", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error_with_spindle;
+    }
     Py_DECREF(temp_obj);
 
     // Dec
     temp_obj = PyLong_FromLong(spindle_speed.dec);
     if (!temp_obj) goto error_with_spindle;
-    PyDict_SetItemString(spindle_speed_dict, "dec", temp_obj);
+    if(PyDict_SetItemString(spindle_speed_dict, "dec", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error_with_spindle;
+    }
     Py_DECREF(temp_obj);
 
     // Unit
     temp_obj = PyLong_FromLong(spindle_speed.unit);
     if (!temp_obj) goto error_with_spindle;
-    PyDict_SetItemString(spindle_speed_dict, "unit", temp_obj);
+    if (PyDict_SetItemString(spindle_speed_dict, "unit", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error_with_spindle;
+    }
     Py_DECREF(temp_obj);
 
     // Reserve
     temp_obj = PyLong_FromLong(spindle_speed.reserve);
     if (!temp_obj) goto error_with_spindle;
-    PyDict_SetItemString(spindle_speed_dict, "reserve", temp_obj);
+    if (PyDict_SetItemString(spindle_speed_dict, "reserve", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error_with_spindle;
+    }
     Py_DECREF(temp_obj);
 
     // Name
     temp_obj = PyUnicode_FromFormat("%c", spindle_speed.name);
     if (!temp_obj) goto error_with_spindle;
-    PyDict_SetItemString(spindle_speed_dict, "name", temp_obj);
+    if (PyDict_SetItemString(spindle_speed_dict, "name", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error_with_spindle;
+    }
     Py_DECREF(temp_obj);
 
     // Suffix
     temp_obj = PyUnicode_FromFormat("%c", spindle_speed.suff);
     if (!temp_obj) goto error_with_spindle;
-    PyDict_SetItemString(spindle_speed_dict, "suff", temp_obj);
+    if (PyDict_SetItemString(spindle_speed_dict, "suff", temp_obj) < 0) {
+        Py_DECREF(temp_obj);
+        goto error_with_spindle;
+    }
     Py_DECREF(temp_obj);
 
     // Add dictionaries to main dict
-    PyDict_SetItemString(dict, "feed_rate", feed_rate_dict);
-    PyDict_SetItemString(dict, "spindle_speed", spindle_speed_dict);
+    if (PyDict_SetItemString(dict, "feed_rate", feed_rate_dict) < 0) {
+        goto error_with_spindle;
+    }
+    if (PyDict_SetItemString(dict, "spindle_speed", spindle_speed_dict) < 0) {
+        goto error_with_spindle;
+    }
 
     Py_DECREF(feed_rate_dict);
     Py_DECREF(spindle_speed_dict);
@@ -381,12 +438,14 @@ static PyObject* Context_rdgcode(Context* self, PyObject* args, PyObject* kwds) 
     short type;
     short block;
     static char* kwlist[] = {"type", "block", NULL};
-    if (!(block >= 0 && block <= 2)) {
-        PyErr_SetString(PyExc_ValueError, "Invalid block number, block number should be 0, 1, 2");
-        return NULL;
-    }
+    
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "hh", kwlist, &type, &block)) {
         PyErr_SetString(PyExc_TypeError, "Invalid arguments");
+        return NULL;
+    }
+
+    if (!(block >= 0 && block <= 2)) {
+        PyErr_SetString(PyExc_ValueError, "Invalid block number, block number should be 0, 1, 2");
         return NULL;
     }
 
@@ -556,7 +615,7 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
 
     // Process modal data based on type
     if (type >= 0 && type <= 20) {  // G code one by one
-        temp = parse_gdata((unsigned char).modal.g_data);
+        temp = parse_gdata((unsigned char)modal.modal.g_data);
         if (!temp) goto error;
         if (PyDict_SetItemString(dict, "g_data", temp) < 0) goto error;
         Py_DECREF(temp);
@@ -657,7 +716,7 @@ error:
 }
 
 // Parse Gcode data (8 bit)
-static PyObject* parse_gdata(char g1shot_value) {
+static PyObject* parse_gdata(unsigned char g1shot_value) {
     PyObject* dict = PyDict_New();
     if (!dict) return NULL;
 
