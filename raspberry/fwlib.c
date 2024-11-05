@@ -3,6 +3,7 @@
 
 #define MACHINE_PORT_DEFAULT 8193
 #define TIMEOUT_DEFAULT 10
+#define MAX_AXIS 8
 
 typedef struct {
     PyObject_HEAD
@@ -490,50 +491,228 @@ static PyObject* Context_rdgcode(Context* self, PyObject* args, PyObject* kwds) 
 
 
 /*
-미완성
 Read modal information [cnc_modal]
 Returns the modal data of the CNC machine
 The moddal data are G code or commanded data such as M,S,T,F
 P.S this function cannot be used for Series 15i, so use cnc_rdgcode and cnc_rdcommand instead.
 Reference: https://www.inventcom.net/fanuc-focas-library/misc/cnc_modal
 */
-// static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
-//     short type;
-//     short block;
-//     static char* kwlist[] = {"type", "block", NULL};
-//     if (!PyArg_ParseTupleAndKeywords(args, kwds, "hh", kwlist, &type, &block)) {
-//         PyErr_SetString(PyExc_TypeError, "Failed to read CNC modal: Invalid arguments");
-//         return NULL;
-//     }
+static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
+    short type;
+    short block;
+    static char* kwlist[] = {"type", "block", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "hh", kwlist, &type, &block)) {
+        PyErr_SetString(PyExc_TypeError, "Failed to read CNC modal: Invalid arguments");
+        return NULL;
+    }
 
+    // Series 0i-D/F에서 지원하는 type 값 검증
+    if (!((type >= 0 && type <= 20) ||      // G code one by one
+          (type >= 100 && type <= 126) ||   // Other than G code one by one
+          (type >= 200 && type <= 207) ||   // Axis data one by one
+          type == -4 ||                     // All 1 shot G code
+          type == -3 ||                     // All axis data
+          type == -2 ||                     // All other than G code
+          type == -1 ||                     // All G code
+          type == 300)) {                   // 1 shot G code one by one
+        PyErr_SetString(PyExc_ValueError, "Invalid type value for Series 0i-D/F");
+        return NULL;
+    }
 
-//     ODBMDL modal;
-//     int ret;
+    // block 값 검증
+    if (!((block == 0) ||                 // active block
+          (block == 1) ||                 // next block
+          (block == 2)                    // block after next block
+    )) {
+        PyErr_SetString(PyExc_ValueError, "Invalid block value for Series 0i-D/F");
+        return NULL;
+    }
 
-//     ret = cnc_modal(self->libh, type, block, &modal);
-//     if (ret != EW_OK) {
-//         PyErr_Format(PyExc_RuntimeError, "Failed to read CNC modal: %d", ret);
-//         return NULL;
-//     }
+    ODBMDL modal;
+    int ret;
 
-//     PyObject* dict = PyDict_New();
-//     if (!dict) {
-//         return NULL;
-//     }
+    ret = cnc_modal(self->libh, type, block, &modal);
+    if (ret != EW_OK) {
+        PyErr_Format(PyExc_RuntimeError, "FWLIB32[%d]", ret);
+        return NULL;
+    }
 
-//     // Add modal data
-//     PyObject* temp_obj;
-//     for (int i = 0; i < modal.datano; i++) {
-//         temp_obj = PyLong_FromLong(modal.data[i]);
-//         if (!temp_obj) {
-//             Py_DECREF(dict);
-//             return NULL;
-//         }
-//         PyDict_SetItemString(dict, modal.name[i], temp_obj);
-//     }
+    PyObject* dict = PyDict_New();
+    if (!dict) {
+        return NULL;
+    }
 
-//     return dict;
-// }
+    // Add basic modal information
+    PyObject* temp;
+    temp = PyLong_FromLong(modal.datano);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "datano", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    temp = PyLong_FromLong(modal.type);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "type", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    // Process modal data based on type
+    if (type >= 0 && type <= 20) {  // G code one by one
+        temp = parse_gdata((unsigned char).modal.g_data);
+        if (!temp) goto error;
+        if (PyDict_SetItemString(dict, "g_data", temp) < 0) goto error;
+        Py_DECREF(temp);
+    }
+    else if (type == -1) {  // All G code data (0-20)
+        PyObject* g_list = PyList_New(21);  // 0 to 20 = 21 items
+        if (!g_list) goto error;
+        for (int i = 0; i < 21; i++) {
+            temp = parse_gdata((unsigned char)modal.modal.g_rdata[i]);
+            if (!temp) {
+                Py_DECREF(g_list);
+                goto error;
+            }
+            PyList_SET_ITEM(g_list, i, temp);  // PyList_SET_ITEM steals reference
+        }
+        if (PyDict_SetItemString(dict, "g_rdata", g_list) < 0) {
+            Py_DECREF(g_list);
+            goto error;
+        }
+        Py_DECREF(g_list);
+    }
+    else if (type == -4 || type == 300) {  // 1 shot G code
+        if (type == 300) { // Single data
+            temp = parse_gdata((unsigned char)modal.modal.g_data);
+            if (!temp) goto error;
+            if (PyDict_SetItemString(dict, "g_data", temp) < 0) goto error;
+            Py_DECREF(temp);
+        } else { // All data
+            PyObject* g_shot_list = PyList_New(4);
+            if (!g_shot_list) goto error;
+            for (int i = 0; i < 4; i++) {
+                temp = parse_gdata((unsigned char)modal.modal.g_1shot[i]);
+                if (!temp) {
+                    Py_DECREF(g_shot_list);
+                    goto error;
+                }
+                PyList_SET_ITEM(g_shot_list, i, temp);
+            }
+            if (PyDict_SetItemString(dict, "g_1shot", g_shot_list) < 0) {
+                Py_DECREF(g_shot_list);
+                goto error;
+            }
+            Py_DECREF(g_shot_list);
+        }
+    }
+    else if ((type >= 100 && type <= 126) || type == -2) {  // Other than G code
+        PyObject* aux_data;
+        if (type >= 100) {  // Single data
+            aux_data = create_aux_dict(&modal.modal.aux);
+        } else {  // All data
+            aux_data = PyList_New(27);
+            if (!aux_data) goto error;
+            for (int i = 0; i < 27; i++) {
+                temp = create_aux_dict(&modal.modal.raux1[i]);
+                if (!temp) {
+                    Py_DECREF(aux_data);
+                    goto error;
+                }
+                PyList_SET_ITEM(aux_data, i, temp);
+            }
+        }
+        if (!aux_data) goto error;
+        if (PyDict_SetItemString(dict, type >= 100 ? "aux" : "raux1", aux_data) < 0) {
+            Py_DECREF(aux_data);
+            goto error;
+        }
+        Py_DECREF(aux_data);
+    }
+    else if (type == -3 || (type >= 200 && type <= 207)) {  // Axis data
+        PyObject* axis_data;
+        if (type >= 200) {  // Single axis data
+            axis_data = create_aux_dict(&modal.modal.aux);
+        } else {  // All axis data
+            axis_data = PyList_New(MAX_AXIS);
+            if (!axis_data) goto error;
+            for (int i = 0; i < MAX_AXIS; i++) {
+                temp = create_aux_dict(&modal.modal.raux2[i]);
+                if (!temp) {
+                    Py_DECREF(axis_data);
+                    goto error;
+                }
+                PyList_SET_ITEM(axis_data, i, temp);
+            }
+        }
+        if (!axis_data) goto error;
+        if (PyDict_SetItemString(dict, type >= 200 ? "aux" : "raux2", axis_data) < 0) {
+            Py_DECREF(axis_data);
+            goto error;
+        }
+        Py_DECREF(axis_data);
+    }
+
+    return dict;
+
+error:
+    Py_XDECREF(dict);
+    return NULL;
+}
+
+// Parse Gcode data (8 bit)
+static PyObject* parse_gdata(char g1shot_value) {
+    PyObject* dict = PyDict_New();
+    if (!dict) return NULL;
+
+    // G code number (bit 0-6)
+    int g_code = g1shot_value & 0x7F;  // 0x7F = 0111 1111
+    PyObject* code = PyLong_FromLong(g_code);
+    if (PyDict_SetItemString(dict, "code", code) < 0) {
+        Py_DECREF(code);
+        Py_DECREF(dict);
+        return NULL;
+    }
+    Py_DECREF(code);
+
+    // Command flag (bit 7)
+    int is_commanded = (g1shot_value & 0x80) >> 7;  // 0x80 = 1000 0000
+    PyObject* commanded = PyBool_FromLong(is_commanded);
+    if (PyDict_SetItemString(dict, "commanded", commanded) < 0) {
+        Py_DECREF(commanded);
+        Py_DECREF(dict);
+        return NULL;
+    }
+    Py_DECREF(commanded);
+
+    return dict;
+}
+
+// Helper function to create dictionary for aux data structure
+static PyObject* create_aux_dict(void* aux_data_ptr) {
+    struct aux_data* data = (struct aux_data*)aux_data_ptr;
+    PyObject* aux_dict = PyDict_New();
+    if (!aux_dict) return NULL;
+
+    PyObject* temp;
+    
+    temp = PyLong_FromLong(data->aux_data);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(aux_dict, "aux_data", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    temp = PyLong_FromSsize_t((unsigned char)data->flag1);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(aux_dict, "flag1", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    temp = PyLong_FromSsize_t((unsigned char)data->flag2);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(aux_dict, "flag2", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    return aux_dict;
+
+error:
+    Py_XDECREF(aux_dict);
+    return NULL;
+}
 
 // Python Method Definition
 static PyMethodDef Context_methods[] = {
@@ -543,6 +722,7 @@ static PyMethodDef Context_methods[] = {
     {"actf", (PyCFunction) Context_actf, METH_NOARGS, "Reads the actual feed rate."},
     {"rdspeed", (PyCFunction) Context_rdspeed, METH_VARARGS, "Reads the feed rate and spindle speed."},
     {"rdgcode", (PyCFunction) Context_rdgcode, METH_VARARGS | METH_KEYWORDS, "Reads the G code."},
+    {"rdmodal", (PyCFunction) Context_modal, METH_VARARGS | METH_KEYWORDS, "Reads the modal information."},
     {"__enter__", (PyCFunction) Context_enter, METH_NOARGS, "Enter the context."},
     {"__exit__", (PyCFunction) Context_exit, METH_VARARGS, "Exit the context."},
     {NULL}  /* Sentinel */
