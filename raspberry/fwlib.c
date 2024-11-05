@@ -566,7 +566,7 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
     }
 
     // Series 0i-D/F에서 지원하는 type 값 검증
-    if (!((type >= 0 && type <= 20) ||      // G code one by one
+    if (!((type >= 0 && type <= 20) ||      // Modal G code one by one
           (type >= 100 && type <= 126) ||   // Other than G code one by one
           (type >= 200 && type <= 207) ||   // Axis data one by one
           type == -4 ||                     // All 1 shot G code
@@ -614,17 +614,17 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
     Py_DECREF(temp);
 
     // Process modal data based on type
-    if (type >= 0 && type <= 20) {  // G code one by one
-        temp = parse_gdata((unsigned char)modal.modal.g_data);
+    if (type >= 0 && type <= 20) {  // Modal G code one by one
+        temp = PyUnicode_FromFormat("%c", modal.modal.g_data);
         if (!temp) goto error;
         if (PyDict_SetItemString(dict, "g_data", temp) < 0) goto error;
         Py_DECREF(temp);
     }
-    else if (type == -1) {  // All G code data (0-20)
+    else if (type == -1) {  // All Modal G code data (0-20)
         PyObject* g_list = PyList_New(21);  // 0 to 20 = 21 items
         if (!g_list) goto error;
         for (int i = 0; i < 21; i++) {
-            temp = parse_gdata((unsigned char)modal.modal.g_rdata[i]);
+            temp = PyUnicode_FromFormat("%c", modal.modal.g_rdata[i]);
             if (!temp) {
                 Py_DECREF(g_list);
                 goto error;
