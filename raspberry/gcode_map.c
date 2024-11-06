@@ -1,4 +1,4 @@
-#include "gcode_mapping.h"
+#include "gcode_map.h"
 
 const char* mapGCode(int type, unsigned char g_data) {
     // type과 g_data 값에 따른 G코드 매핑
