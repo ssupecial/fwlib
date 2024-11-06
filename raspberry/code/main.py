@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 
 
-def setup_mqtt(name, mqtt_ip, mqtt_port):
+def setup_mqtt(name, mqtt_ip, mqtt_port) -> mqtt.Client:
     mqtt_client = mqtt.Client(name)
 
     def on_connect(client, userdata, flags, rc):
@@ -59,7 +59,7 @@ def main(ip, port, mqtt_ip, mqtt_port, mqtt_topic, time_interval, print_log):
 
     # MQTT Broker에 연결
     try:
-        mqtt_client = setup_mqtt("CNC Machine", mqtt_ip, mqtt)
+        mqtt_client = setup_mqtt("CNC Machine", mqtt_ip, mqtt_port)
     except Exception as e:
         logging.error(f"Failed to connect to MQTT Broker: {e}")
         raise click.ClickException(str(e))
