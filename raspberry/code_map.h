@@ -11,6 +11,7 @@ extern "C" {
 // 반환: 매핑된 G코드 문자열 (예: "G00", "G01" 등)
 extern const char* map_one_shot_gcode(int type, unsigned char g_data);
 extern const char* map_modal_gcode(int type, unsigned char g_data);
+extern const char* map_other_code(int type);
 
 #ifdef __cplusplus
 }
