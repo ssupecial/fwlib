@@ -4,6 +4,7 @@ import click
 from cnc import CNCDevice
 import paho.mqtt.client as mqtt
 import time
+import json
 import datetime as dt
 
 logging.basicConfig(
@@ -146,7 +147,7 @@ def main(ip, port, mqtt_ip, mqtt_port, mqtt_topic, time_interval):
                 remaining_time = time_interval - (end_time - start_time)
                 if remaining_time > 0:
                     time.sleep(remaining_time)
-                mqtt_client.publish(mqtt_topic, message)
+                mqtt_client.publish(mqtt_topic, json.dumps(message))
                 start_time = time.perf_counter()
 
     except Exception as e:
