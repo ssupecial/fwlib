@@ -14,11 +14,28 @@ logging.basicConfig(
 )
 
 
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        logging.info("Connected to MQTT Broker!")
-    else:
-        logging.error("Failed to connect to MQTT Broker...")
+def setup_mqtt(name, mqtt_ip, mqtt_port):
+    mqtt_client = mqtt.Client(name)
+
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            logging.info("Connected to MQTT Broker!")
+        else:
+            logging.error("Failed to connect to MQTT Broker...")
+
+    def on_disconnect(client, userdata, rc):
+        if rc != 0:
+            logging.error("Unexpected disconnection from MQTT Broker...")
+        else:
+            logging.info("Disconnected from MQTT Broker!")
+
+    mqtt_client.on_connect = on_connect
+    mqtt_client.on_disconnect = on_disconnect
+
+    mqtt_client.connect(mqtt_ip, mqtt_port)
+    mqtt_client.loop_start()
+
+    return mqtt_client
 
 
 @click.command()
@@ -42,10 +59,7 @@ def main(ip, port, mqtt_ip, mqtt_port, mqtt_topic, time_interval, print_log):
 
     # MQTT Broker에 연결
     try:
-        mqtt_client = mqtt.Client("CNC Machine")
-        mqtt_client.on_connect = on_connect
-        mqtt_client.connect(mqtt_ip, mqtt_port, 60)
-        mqtt_client.loop_start()
+        mqtt_client = setup_mqtt("CNC Machine", mqtt_ip, mqtt)
     except Exception as e:
         logging.error(f"Failed to connect to MQTT Broker: {e}")
         raise click.ClickException(str(e))
