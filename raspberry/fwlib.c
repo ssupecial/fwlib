@@ -1,6 +1,6 @@
 #include <Python.h>
 #include "fwlib32.h"
-#include "gcode_mapp.h"
+#include "gcode_map.h"
 
 #define MACHINE_PORT_DEFAULT 8193
 #define TIMEOUT_DEFAULT 10
