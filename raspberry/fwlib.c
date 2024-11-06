@@ -1,6 +1,6 @@
 #include <Python.h>
 #include "fwlib32.h"
-#include "gcode_map.h"
+#include "code_map.h"
 
 #define MACHINE_PORT_DEFAULT 8193
 #define TIMEOUT_DEFAULT 10
@@ -616,7 +616,7 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
 
     // Process modal data based on type
     if (type >= 0 && type <= 20) {  // Modal G code one by one
-        temp =  parse_gdata(type, (unsigned char)modal.modal.g_data);
+        temp =  parse_gdata(type, (unsigned char)modal.modal.g_data, 0);
         if (!temp) goto error;
         if (PyDict_SetItemString(dict, "g_data", temp) < 0) goto error;
         Py_DECREF(temp);
@@ -625,7 +625,7 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
         PyObject* g_list = PyList_New(21);  // 0 to 20 = 21 items
         if (!g_list) goto error;
         for (int i = 0; i < 21; i++) {
-            temp = parse_gdata(i, (unsigned char)modal.modal.g_rdata[i]);
+            temp = parse_gdata(i, (unsigned char)modal.modal.g_rdata[i], 0);
             if (!temp) {
                 Py_DECREF(g_list);
                 goto error;
@@ -640,21 +640,27 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
     }
     else if (type == -4 || type == 300) {  // 1 shot G code
         if (type == 300) { // Single data
-            temp = parse_gdata(type, (unsigned char)modal.modal.g_data);
+            temp = parse_gdata(type, (unsigned char)modal.modal.g_data, 1);
             if (!temp) goto error;
             if (PyDict_SetItemString(dict, "g_data", temp) < 0) goto error;
             Py_DECREF(temp);
         } else { // All data
-            PyObject* g_shot_list = PyList_New(4);
+            PyObject* g_shot_list = PyList_New(1);
             if (!g_shot_list) goto error;
-            for (int i = 0; i < 4; i++) {
-                temp = parse_gdata(i, (unsigned char)modal.modal.g_1shot[i]);
-                if (!temp) {
-                    Py_DECREF(g_shot_list);
-                    goto error;
-                }
-                PyList_SET_ITEM(g_shot_list, i, temp);
+            temp = parse_gdata(300, (unsigned char)modal.modal.g_1shot[0], 1);
+            if (!temp) {
+                Py_DECREF(g_shot_list);
+                goto error;
             }
+            PyList_SET_ITEM(g_shot_list, 0, temp);
+            // for (int i = 0; i < 4; i++) {
+            //     temp = parse_gdata(i, (unsigned char)modal.modal.g_1shot[i]);
+            //     if (!temp) {
+            //         Py_DECREF(g_shot_list);
+            //         goto error;
+            //     }
+            //     PyList_SET_ITEM(g_shot_list, i, temp);
+            // }
             if (PyDict_SetItemString(dict, "g_1shot", g_shot_list) < 0) {
                 Py_DECREF(g_shot_list);
                 goto error;
@@ -717,13 +723,19 @@ error:
 }
 
 // Parse Gcode data (8 bit)
-static PyObject* parse_gdata(int type, unsigned char g_data) {
+static PyObject* parse_gdata(int type, unsigned char g_data, int is_one_shot) {
     PyObject* dict = PyDict_New();
     if (!dict) return NULL;
 
     // G code number (bit 0-6)
     unsigned char g_code = g_data & 0x7F;  // 0x7F = 0111 1111
-    PyObject* code = PyUnicode_FromString(mapGcode(type, g_code));
+    PyObject* code;
+    if (is_one_shot) {
+        code = PyUnicode_FromString(map_one_shot_gcode(300, g_code));
+    }
+    else {
+        code = PyUnicode_FromString(map_modal_gcode(type, g_code));
+    } 
     if (PyDict_SetItemString(dict, "code", code) < 0) {
         Py_DECREF(code);
         Py_DECREF(dict);

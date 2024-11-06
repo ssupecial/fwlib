@@ -1,7 +1,55 @@
-#include "gcode_map.h"
+#include "code_map.h"
 
-const char* mapGcode(int type, unsigned char value) {
-    // type과 g_data 값에 따른 G코드 매핑
+const char* map_one_shot_gcode(int type, unsigned char value) {
+    switch(type) {
+        case 300:
+            switch(value) {
+                case 0: return "G04";
+                case 1: return "G10";
+                case 4: return "G27";
+                case 5: return "G28";
+                case 6: return "G29";
+                case 7: return "G30";
+                case 9: return "G39";
+                case 14: return "G92";
+                case 16: return "G31(G31.1)";
+                case 17: return "G60";
+                case 18: return "G65";
+                case 20: return "G05";
+                case 21: return "G11";
+                case 22: return "G52";
+                case 24: return "G37";
+                case 25: return "G07.1(G107)";
+                case 26: return "G30.1";
+                case 27: return "G10.6";
+                case 28: return "G72.1";
+                case 29: return "G72.2";
+                case 30: return "G92.1";
+                case 31: return "G08";
+                case 100: return "G81.1";
+                case 104: return "G05.1";
+                case 105: return "G07";
+                case 106: return "G31.8";
+                case 107: return "G31.9";
+                case 108: return "G12.4";
+                case 109: return "G13.4";
+                case 110: return "G05.4";
+                case 111: return "G10.9";
+                case 112: return "G31.2";
+                case 113: return "G31.3";
+                case 114: return "G31.4";
+                case 116: return "G91.1";
+                case 125: return "G37.1";
+                case 126: return "G37.2";
+                case 127: return "G37.3";
+                default: return "Unknown";
+            }
+            break;
+        default:
+            return "Unknown";
+    }
+}
+const char* map_modal_gcode(int type, unsigned char value) {
     switch(type) {
         case 0:
             switch(value) {

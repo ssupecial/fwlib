@@ -26,7 +26,10 @@ def on_connect(client, userdata, flags, rc):
 @click.option("--mqtt_port", default=1883, help="MQTT Broker Port Number")
 @click.option("--mqtt_topic", default="cnc/controller", help="MQTT Topic")
 @click.option("--time_interval", default=1, help="Time Interval to read data")
-def main(ip, port, mqtt_ip, mqtt_port, mqtt_topic, time_interval):
+@click.option("--print_log", default=False, help="Print log")
+def main(ip, port, mqtt_ip, mqtt_port, mqtt_topic, time_interval, print_log):
+    if print_log:
+        logging.getLogger().setLevel(logging.DEBUG)
     # MQTT Broker에 연결
     try:
         mqtt_client = mqtt.Client("CNC Machine")

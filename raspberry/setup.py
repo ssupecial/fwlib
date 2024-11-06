@@ -2,7 +2,7 @@ from setuptools import setup, Extension
 
 module = Extension(
     "fwlib",
-    sources=["fwlib.c", "gcode_map.c"],
+    sources=["fwlib.c", "code_map.c"],
     include_dirs=["."],
     libraries=["fwlib32"],
 )
