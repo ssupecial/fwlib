@@ -1,6 +1,6 @@
 #include "gcode_map.h"
 
-const char* mapGCode(int type, unsigned char g_data) {
+const char* mapGCode(int type, unsigned char value) {
     // type과 g_data 값에 따른 G코드 매핑
     switch(type) {
         case 0:
