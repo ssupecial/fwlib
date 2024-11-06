@@ -723,7 +723,7 @@ static PyObject* parse_gdata(int type, unsigned char g_data) {
 
     // G code number (bit 0-6)
     unsigned char g_code = g_data & 0x7F;  // 0x7F = 0111 1111
-    PyObject* code = PyUnicode_FromString(mapGcode((type, g_code)));
+    PyObject* code = PyUnicode_FromString(mapGcode(type, g_code));
     if (PyDict_SetItemString(dict, "code", code) < 0) {
         Py_DECREF(code);
         Py_DECREF(dict);
