@@ -29,7 +29,7 @@ void cnc_shutdown() {
 #endif
 
 
-static PyObject* parse_gdata(unsigned char g1shot_value);
+static PyObject* parse_gdata(int type, unsigned char g1shot_value);
 static PyObject* create_aux_dict(void* aux_data_ptr);
 
 static PyObject* Context_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
