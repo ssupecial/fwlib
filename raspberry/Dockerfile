@@ -41,6 +41,6 @@ WORKDIR /app
 
 COPY --from=builder /usr/src/fwlib/dist/*.whl /app/
 
-RUN pip install /app/*.whl click && rm /app/*.whl
+RUN pip install /app/*.whl click paho-mqtt && rm /app/*.whl
 
 COPY ./raspberry/code/* ./
