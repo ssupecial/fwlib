@@ -18,7 +18,7 @@ RUN ln -s /usr/local/lib/libfwlib32-linux-armv7.so.1.0.5 /usr/local/lib/libfwlib
 RUN python -m pip install setuptools wheel
 
 WORKDIR /usr/src/fwlib
-COPY ./raspberry/fwlib.c ./raspberry/setup.py ./fwlib32.h ./
+COPY ./raspberry/fwlib.c ./raspberry/setup.py ./fwlib32.h ./raspberry/gcode_map.h ./raspberry/gcode_map.c ./ 
 
 # Modify setup.py to ensure ARM compilation
 ENV ARCHFLAGS="-arch arm"

@@ -1,5 +1,6 @@
 #include <Python.h>
 #include "fwlib32.h"
+#include "gcode_mapp.h"
 
 #define MACHINE_PORT_DEFAULT 8193
 #define TIMEOUT_DEFAULT 10
@@ -615,7 +616,7 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
 
     // Process modal data based on type
     if (type >= 0 && type <= 20) {  // Modal G code one by one
-        temp = PyUnicode_FromFormat("%c", modal.modal.g_data);
+        temp =  parse_gdata(type, (unsigned char)modal.modal.g_data);
         if (!temp) goto error;
         if (PyDict_SetItemString(dict, "g_data", temp) < 0) goto error;
         Py_DECREF(temp);
@@ -624,7 +625,7 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
         PyObject* g_list = PyList_New(21);  // 0 to 20 = 21 items
         if (!g_list) goto error;
         for (int i = 0; i < 21; i++) {
-            temp = PyUnicode_FromFormat("%c", modal.modal.g_rdata[i]);
+            temp = parse_gdata(i, (unsigned char)modal.modal.g_rdata[i]);
             if (!temp) {
                 Py_DECREF(g_list);
                 goto error;
@@ -639,7 +640,7 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
     }
     else if (type == -4 || type == 300) {  // 1 shot G code
         if (type == 300) { // Single data
-            temp = parse_gdata((unsigned char)modal.modal.g_data);
+            temp = parse_gdata(type, (unsigned char)modal.modal.g_data);
             if (!temp) goto error;
             if (PyDict_SetItemString(dict, "g_data", temp) < 0) goto error;
             Py_DECREF(temp);
@@ -647,7 +648,7 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
             PyObject* g_shot_list = PyList_New(4);
             if (!g_shot_list) goto error;
             for (int i = 0; i < 4; i++) {
-                temp = parse_gdata((unsigned char)modal.modal.g_1shot[i]);
+                temp = parse_gdata(i, (unsigned char)modal.modal.g_1shot[i]);
                 if (!temp) {
                     Py_DECREF(g_shot_list);
                     goto error;
@@ -716,13 +717,13 @@ error:
 }
 
 // Parse Gcode data (8 bit)
-static PyObject* parse_gdata(unsigned char g1shot_value) {
+static PyObject* parse_gdata(int type, unsigned char g_data) {
     PyObject* dict = PyDict_New();
     if (!dict) return NULL;
 
     // G code number (bit 0-6)
-    int g_code = g1shot_value & 0x7F;  // 0x7F = 0111 1111
-    PyObject* code = PyLong_FromLong(g_code);
+    unsigned char g_code = g_data & 0x7F;  // 0x7F = 0111 1111
+    PyObject* code = PyUnicode_FromString(mapGcode((type, g_code)));
     if (PyDict_SetItemString(dict, "code", code) < 0) {
         Py_DECREF(code);
         Py_DECREF(dict);
@@ -731,7 +732,7 @@ static PyObject* parse_gdata(unsigned char g1shot_value) {
     Py_DECREF(code);
 
     // Command flag (bit 7)
-    int is_commanded = (g1shot_value & 0x80) >> 7;  // 0x80 = 1000 0000
+    int is_commanded = (g_data & 0x80) >> 7;  // 0x80 = 1000 0000
     PyObject* commanded = PyBool_FromLong(is_commanded);
     if (PyDict_SetItemString(dict, "commanded", commanded) < 0) {
         Py_DECREF(commanded);
