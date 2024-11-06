@@ -770,7 +770,7 @@ static PyObject* parse_aux(int type, void* aux_data_ptr, int is_axis) {
     if (is_axis){
         temp = PyLong_FromLong(type-200+1);
     } else {
-        temp = map_other_code(type);
+        temp = PyUnicode_FromString(map_other_code(type));
     }
     
     if (!temp) goto error;
