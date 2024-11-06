@@ -30,7 +30,9 @@ void cnc_shutdown() {
 
 
 static PyObject* parse_gdata(int type, unsigned char g1shot_value);
-static PyObject* create_aux_dict(void* aux_data_ptr);
+static PyObject* parse_aux(int type, struct aux_data* aux_data, int is_axis);
+static PyObject* parse_gdata(int type, unsigned char g_data, int is_one_shot);
+
 
 static PyObject* Context_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     Context* self;
@@ -671,12 +673,12 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
     else if ((type >= 100 && type <= 126) || type == -2) {  // Other than G code
         PyObject* aux_data;
         if (type >= 100) {  // Single data
-            aux_data = create_aux_dict(&modal.modal.aux);
+            aux_data = parse_aux(type, &modal.modal.aux, 0);
         } else {  // All data
             aux_data = PyList_New(27);
             if (!aux_data) goto error;
             for (int i = 0; i < 27; i++) {
-                temp = create_aux_dict(&modal.modal.raux1[i]);
+                temp = parse_aux(100+i, &modal.modal.raux1[i], 0);
                 if (!temp) {
                     Py_DECREF(aux_data);
                     goto error;
@@ -694,12 +696,12 @@ static PyObject* Context_modal(Context* self, PyObject* args, PyObject* kwds) {
     else if (type == -3 || (type >= 200 && type <= 207)) {  // Axis data
         PyObject* axis_data;
         if (type >= 200) {  // Single axis data
-            axis_data = create_aux_dict(&modal.modal.aux);
+            axis_data = parse_aux(type, &modal.modal.aux, 1);
         } else {  // All axis data
             axis_data = PyList_New(MAX_AXIS);
             if (!axis_data) goto error;
             for (int i = 0; i < MAX_AXIS; i++) {
-                temp = create_aux_dict(&modal.modal.raux2[i]);
+                temp = parse_aux(i+200, &modal.modal.raux2[i], 1);
                 if (!temp) {
                     Py_DECREF(axis_data);
                     goto error;
@@ -756,25 +758,34 @@ static PyObject* parse_gdata(int type, unsigned char g_data, int is_one_shot) {
     return dict;
 }
 
-// Helper function to create dictionary for aux data structure
-static PyObject* create_aux_dict(void* aux_data_ptr) {
+// Parse auxiliary data
+static PyObject* parse_aux(int type, void* aux_data_ptr, int is_axis) {
     struct aux_data* data = (struct aux_data*)aux_data_ptr;
     PyObject* aux_dict = PyDict_New();
     if (!aux_dict) return NULL;
 
     PyObject* temp;
     
+    if (is_axis){
+        temp = PyLong_FromLong(type-200+1);
+    } else {
+        temp = map_other_code(type);
+    }
+    
+    if (!temp) goto error;
+    if (PyDict_SetItemString(aux_dict, "type", temp) < 0) goto error;
+    Py_DECREF(temp);
+
     temp = PyLong_FromLong(data->aux_data);
     if (!temp) goto error;
     if (PyDict_SetItemString(aux_dict, "aux_data", temp) < 0) goto error;
-    Py_DECREF(temp);
 
-    temp = PyLong_FromSsize_t((unsigned char)data->flag1);
+    temp = parse_flag1((unsigned char)data->flag1);
     if (!temp) goto error;
     if (PyDict_SetItemString(aux_dict, "flag1", temp) < 0) goto error;
     Py_DECREF(temp);
 
-    temp = PyLong_FromSsize_t((unsigned char)data->flag2);
+    temp = parse_flag2((unsigned char)data->flag2);
     if (!temp) goto error;
     if (PyDict_SetItemString(aux_dict, "flag2", temp) < 0) goto error;
     Py_DECREF(temp);
@@ -783,6 +794,79 @@ static PyObject* create_aux_dict(void* aux_data_ptr) {
 
 error:
     Py_XDECREF(aux_dict);
+    return NULL;
+}
+
+static PyObject* parse_flag1(unsigned char flag1) {
+    PyObject* dict = PyDict_New();
+    if (!dict) return NULL;
+
+    PyObject* temp;
+
+    // 입력 값 (bit 3-0)
+    int value = flag1 & 0x0F;
+    temp = PyLong_FromLong(value);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "inputs", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    // 부호 (bit 5)
+    int is_negative = (flag1 >> 5) & 0x01;
+    temp = PyBool_FromLong(is_negative);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "is_negative", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    // 소수점 명령 존재 여부 (bit 6)
+    int has_decimal = (flag1 >> 6) & 0x01;
+    temp = PyBool_FromLong(has_decimal);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "has_decimal", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    // 현재 블록 명령 존재 여부 (bit 7)
+    int has_command = (flag1 >> 7) & 0x01;
+    temp = PyBool_FromLong(has_command);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "has_command", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    // 원본 flag1 값도 저장
+    temp = PyLong_FromUnsignedLong(flag1);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "flag1", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    return dict;
+
+error:
+    Py_XDECREF(dict);
+    return NULL;
+}
+
+static PyObject* parse_flag2(unsigned char flag2) {
+    PyObject* dict = PyDict_New();
+    if (!dict) return NULL;
+
+    PyObject* temp;
+
+    // 소수점 자릿수 (bit 2-0)
+    int decimal = flag2 & 0x07; // 0x07 = 0000 0111
+    temp = PyLong_FromLong(decimal);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "decimal", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    // 원본 flag2 값도 저장
+    temp = PyLong_FromUnsignedLong(flag2);
+    if (!temp) goto error;
+    if (PyDict_SetItemString(dict, "flag2", temp) < 0) goto error;
+    Py_DECREF(temp);
+
+    return dict;
+
+error:
+    Py_XDECREF(dict);
     return NULL;
 }
 

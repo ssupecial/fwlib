@@ -6,6 +6,8 @@ import paho.mqtt.client as mqtt
 import time
 import json
 import datetime as dt
+from zoneinfo import ZoneInfo
+
 
 logging.basicConfig(
     level=logging.INFO, format="[%(asctime)s] %(levelname)s - %(message)s"
@@ -144,7 +146,9 @@ def main(ip, port, mqtt_ip, mqtt_port, mqtt_topic, time_interval, print_log):
                 except Exception as e:
                     logging.error(f"Failed to read previous modal gcode: {e}")
 
-                timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                timestamp = dt.datetime.now(ZoneInfo("Asia/Seoul")).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
                 message["timestamp"] = timestamp
                 end_time = time.perf_counter()
                 remaining_time = time_interval - (end_time - start_time)

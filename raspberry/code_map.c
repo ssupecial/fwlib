@@ -263,3 +263,95 @@ const char* map_modal_gcode(int type, unsigned char value) {
     
     return "Unknown";  // 매핑되지 않은 경우
 }
+const char* map_other_code(int type) {
+    const char* address;
+    switch (type) {
+        case 100:
+            address = "B";
+            break;
+        case 101:
+            address = "D";
+            break;
+        case 102:
+            address = "-";
+            break;
+        case 103:
+            address = "F";
+            break;
+        case 104:
+            address = "H[M]";
+            break;
+        case 105:
+            address = "L";
+            break;
+        case 106:
+            address = "M";
+            break;
+        case 107:
+            address = "S";
+            break;
+        case 108:
+            address = "T";
+            break;
+        case 109:
+            address = "R[M]";
+            break;
+        case 110:
+            address = "P[M]";
+            break;
+        case 111:
+            address = "Q[M]";
+            break;
+        case 112:
+            address = "A";
+            break;
+        case 113:
+            address = "C";
+            break;
+        case 114:
+            address = "I";
+            break;
+        case 115:
+            address = "J";
+            break;
+        case 116:
+            address = "K";
+            break;
+        case 117:
+            address = "N";
+            break;
+        case 118:
+            address = "O";
+            break;
+        case 119:
+            address = "U";
+            break;
+        case 120:
+            address = "V";
+            break;
+        case 121:
+            address = "W";
+            break;
+        case 122:
+            address = "X";
+            break;
+        case 123:
+            address = "Y";
+            break;
+        case 124:
+            address = "Z";
+            break;
+        case 125:
+            address = "M";
+            break;
+        case 126:
+            address = "M";
+            break;
+        default:
+            address = "Unknown";
+            break;
+    }
+
+    return address;
+}
+
